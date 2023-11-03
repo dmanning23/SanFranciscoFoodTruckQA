@@ -1,52 +1,60 @@
 import os
-from apikey import apikey
 import streamlit as st
 from langchain.chat_models import ChatOpenAI
 from langchain.document_loaders import TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
+from langchain.vectorstores import Qdrant
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain.schema import (SystemMessage, HumanMessage, AIMessage)
 
 @st.cache_resource
-def InitializeMemory():
-    print("resetting memory")
-    return ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-
-def SelectModel():
-    model = st.sidebar.radio("Choose a model:", ("GPT-3.5", "GPT-4"))
-    if model == "GPT-3.5":
-        model_name = "gpt-3.5-turbo"
-    else:
-        model_name = "gpt-4"
-
-    temperature = st.sidebar.slider("Temperature:", 
-                                    min_value=0.0, 
-                                    max_value=2.0,
-                                    value=0.0,
-                                    step=0.01)
-    
-    return ChatOpenAI(model=model_name, temperature=temperature)
-
-def InitializeModel(memory):
+def InitializeDocument():
+     #Load the document
     loader = TextLoader("./constitution.txt")
     documents = loader.load()
 
+    #Split the document into chunks
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     chunks = text_splitter.split_documents(documents)
 
+    #Get the embeddings for the list of chunks and store in the vectordb
     embeddings = OpenAIEmbeddings()
-    vector_store = Chroma.from_documents(chunks, embeddings)
+    return Qdrant.from_documents(
+        chunks,
+        embeddings,
+        location=":memory:",  # Local mode with in-memory storage only
+        collection_name="my_documents",)
 
-    llm = SelectModel()
+def main():
+    #os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+    st.set_page_config(
+        page_title="Chat With A Document",
+        page_icon="😺")
+    
+    #setup the sidebar
+    st.sidebar.title("Options")
+
+    #Create the memory object
+    if "memory" not in st.session_state:
+        st.session_state["memory"]=ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+    memory=st.session_state["memory"]
+
+    #add a button to the sidebar to start a new conversation
+    clear_button = st.sidebar.button("New Conversation", key="clear")
+    if (clear_button):
+        print("Clearing memory")
+        memory.clear()
+
+    vector_store = InitializeDocument()
+
+    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.0)
     retriever=vector_store.as_retriever()
-    return ConversationalRetrievalChain.from_llm(llm,
+    crc = ConversationalRetrievalChain.from_llm(llm,
                                                 retriever,
                                                 memory=memory)
 
-def Run(memory, crc):
     container = st.container()
     with container:
         with st.form(key="my form", clear_on_submit=True):
@@ -55,12 +63,19 @@ def Run(memory, crc):
 
         if submit_button and user_input:
 
+            #Use the embedding function to get the similar documents
+            documents = vector_store.similarity_search_with_score(user_input)
+            st.write(f"There were {len(documents)} matching documents found:")
+            for document, score in documents:
+                st.write(document)
+                st.subheader(f"Score: {score}")
+
             with st.spinner("Thinking..."):
                 question = {'question': user_input}
                 response = crc.run(question)
             
             #write the ressponse
-            st.write(response)
+            st.subheader(response)
 
             #write the chat history
             variables = memory.load_memory_variables({})
@@ -74,26 +89,6 @@ def Run(memory, crc):
                         st.markdown(message.content)
                 else:
                     st.write(f"System message: {message.content}")
-
-def main():
-    os.environ["OPENAI_API_KEY"] = apikey
-    st.set_page_config(
-        page_title="Chat With A Document",
-        page_icon="😺")
-    
-    #setup the sidebar
-    st.sidebar.title("Options")
-
-    memory = InitializeMemory()
-
-    #add a button to the sidebar to start a new conversation
-    clear_button = st.sidebar.button("New Conversation", key="clear")
-    if (clear_button):
-        print("Clearing memory")
-        memory.clear()
-
-    crc = InitializeModel(memory)
-    Run(memory, crc)
     
 if __name__ == "__main__":
     main()
