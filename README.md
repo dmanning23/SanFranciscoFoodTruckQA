@@ -1,16 +1,6 @@
-# ChatWithDocument
-Chat with a document using Python, LangChain, ChromaDB, and LLM
+# ChatWithConstitution
+Chat with a document using Python, LangChain, QDrant, and LLM
 
-First install the necessary python libraries:
-```
-pip3 install chromadb streamlit langchain openai tiktoken
-```
+This app loads a document, stores the embeddings in a vector datastore (QDrant in this example), and allows the user to chat with the document and ask it questions. The user's chat history is stored in the session, so it can be reset by using the Clear button or refreshing the browser. The app will display the relevent sections it found in the source text, with relevency scores.
 
-Set your OpenAI API key in the apikey.py file
-You'll need to have credits available in your OpenAI account to run this program, or you will hit the 429 rate limit error.
-It costs about a penny to load the document, parse through the OpenAI model, and store in ChromaDB. (YMMV)
 
-Use streamlit to run the program:
-```
-streamlit run app.py
-```
