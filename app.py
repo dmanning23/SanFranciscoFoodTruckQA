@@ -1,59 +1,25 @@
 import os
 import streamlit as st
-from langchain.chat_models import ChatOpenAI
-from langchain.document_loaders import TextLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores import Qdrant
-from langchain.chains import ConversationalRetrievalChain
-from langchain.memory import ConversationBufferMemory
-from langchain.schema import (SystemMessage, HumanMessage, AIMessage)
-
-@st.cache_resource
-def InitializeDocument():
-     #Load the document
-    loader = TextLoader("./constitution.txt")
-    documents = loader.load()
-
-    #Split the document into chunks
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-    chunks = text_splitter.split_documents(documents)
-
-    #Get the embeddings for the list of chunks and store in the vectordb
-    embeddings = OpenAIEmbeddings()
-    return Qdrant.from_documents(
-        chunks,
-        embeddings,
-        location=":memory:",  # Local mode with in-memory storage only
-        collection_name="my_documents",)
+from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
+import pandas as pd
+from langchain_openai import OpenAI
 
 def main():
-    #os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+    os.environ["OPENAI_API_KEY"] = "YOUR OPENAI API KEY"
     st.set_page_config(
-        page_title="Chat With A Document",
-        page_icon="😺")
+        page_title="San Framcisco Food Trucks Q&A",
+        page_icon="🌮")
     
-    #setup the sidebar
-    st.sidebar.title("Options")
+    st.text("Ask any question about food trucks in San Francisco!")
+    st.text("Examples:")
+    st.text('"Which food trucks serve tacos?"')
+    st.text('"What food trucks serve vegan food?"')
+    st.text('"Can you tell me something interesting about this data?"')
 
-    #Create the memory object
-    if "memory" not in st.session_state:
-        st.session_state["memory"]=ConversationBufferMemory(memory_key="chat_history", return_messages=True)
-    memory=st.session_state["memory"]
+    #Read the csv file into a Pandas dataframe
+    df = pd.read_csv("./Mobile_Food_Facility_Permit.csv")
 
-    #add a button to the sidebar to start a new conversation
-    clear_button = st.sidebar.button("New Conversation", key="clear")
-    if (clear_button):
-        print("Clearing memory")
-        memory.clear()
-
-    vector_store = InitializeDocument()
-
-    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0.0)
-    retriever=vector_store.as_retriever()
-    crc = ConversationalRetrievalChain.from_llm(llm,
-                                                retriever,
-                                                memory=memory)
+    agent = create_pandas_dataframe_agent(OpenAI(temperature=0), df, verbose=True)
 
     container = st.container()
     with container:
@@ -63,32 +29,14 @@ def main():
 
         if submit_button and user_input:
 
-            #Use the embedding function to get the similar documents
-            documents = vector_store.similarity_search_with_score(user_input)
-            st.write(f"There were {len(documents)} matching documents found:")
-            for document, score in documents:
-                st.write(document)
-                st.subheader(f"Score: {score}")
+            with st.chat_message('user'):
+                st.markdown(user_input)
 
             with st.spinner("Thinking..."):
-                question = {'question': user_input}
-                response = crc.run(question)
+                response = agent.invoke(user_input)
             
-            #write the ressponse
-            st.subheader(response)
+                with st.chat_message('assistant'):
+                    st.markdown(response["output"])
 
-            #write the chat history
-            variables = memory.load_memory_variables({})
-            messages = variables['chat_history']
-            for message in messages:
-                if isinstance(message, AIMessage):
-                    with st.chat_message('assistant'):
-                        st.markdown(message.content)
-                elif isinstance(message, HumanMessage):
-                    with st.chat_message('user'):
-                        st.markdown(message.content)
-                else:
-                    st.write(f"System message: {message.content}")
-    
 if __name__ == "__main__":
     main()

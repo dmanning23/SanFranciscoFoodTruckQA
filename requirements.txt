@@ -1,5 +1,8 @@
 langchain
-openai
+langchain_experimental
+langchain_openai
 streamlit
-qdrant-client
-tiktoken
+pandas
+tabulate
+matplotlib
+seaborn

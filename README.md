@@ -1,6 +1,6 @@
-# ChatWithConstitution
-Chat with a document using Python, LangChain, QDrant, and LLM
+# San Francisco Food Truck Q&A
+Have your questions answered about food trucks in San Francisco
 
-This app loads a document, stores the embeddings in a vector datastore (QDrant in this example), and allows the user to chat with the document and ask it questions. The user's chat history is stored in the session, so it can be reset by using the Clear button or refreshing the browser. The app will display the relevent sections it found in the source text, with relevency scores.
+This app loads a document about San Francisco food trucks, and allows the user to ask questions about the data. It uses the OpenAI API and several experimental features of the LangChain project to find relevant data points and answer the questions. 
 
-You can see this app running live: https://chatwithconstitution-6myy7rsaxqbwpzrjxvwebk.streamlit.app/
+This project can answer simple questions, but this technology really shines when loaded with a more robust data set. For example, if loaded with complicated financial data, it would allow the user to slice and dice the data to find insights and even create graphs in a fraction of the time of an entire team of financial analysts or data scientists.
