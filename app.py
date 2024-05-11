@@ -7,7 +7,7 @@ from langchain_openai import OpenAI
 def main():
     os.environ["OPENAI_API_KEY"] = st.secrets["openAIapikey"]
     st.set_page_config(
-        page_title="San Framcisco Food Trucks Q&A",
+        page_title="San Francisco Food Trucks Q&A",
         page_icon="🌮")
     
     st.text("Ask any question about food trucks in San Francisco!")
