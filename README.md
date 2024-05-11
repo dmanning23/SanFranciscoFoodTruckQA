@@ -8,4 +8,6 @@ This app loads a document about San Francisco food trucks, and allows the user t
 
 This project can answer simple questions, but this technology really shines when loaded with a more robust data set. For example, if loaded with complicated financial data, it would allow the user to slice and dice the data to find insights and even create graphs in a fraction of the time of an entire team of financial analysts or data scientists.
 
+Given more time, I would probably do something like add additional data sources and agents to the AI chain. For example, if there was geographic database that could be attached to a Google Maps agent, the chat bot could better answer location based queries like "Find taco trucks near me".
+
 ![AppRunning](./Screenshot.png?raw=true "AppRunning")
